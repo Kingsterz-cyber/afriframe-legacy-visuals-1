@@ -1,22 +1,22 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { createBooking } from '@/services/availabilityService';
-import { toast } from 'sonner';
-import type { BookingData } from './BookingFlow';
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { ArrowLeft, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { createBooking } from '@/services/availabilityService'
+import { toast } from 'sonner'
+import type { BookingData } from './BookingFlow'
 
 interface ClientDetailsCardProps {
-  bookingData: BookingData;
+  bookingData: BookingData
   onSubmit: (details: {
-    name: string;
-    email: string;
-    phone: string;
-    message: string;
-  }) => void;
-  onBack: () => void;
+    name: string
+    email: string
+    phone: string
+    message: string
+  }) => void
+  onBack: () => void
 }
 
 const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardProps) => {
@@ -25,63 +25,67 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
     email: '',
     phone: '',
     message: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
-  const [slotStatus, setSlotStatus] = useState<'available' | 'taken' | null>(null);
+  })
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [slotStatus, setSlotStatus] = useState<'available' | 'taken' | null>(null)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
-  };
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     if (!bookingData.service || !bookingData.date || !bookingData.time) {
-      toast.error('Missing booking information');
-      return;
+      toast.error('Missing booking information')
+      return
     }
 
-    setIsSubmitting(true);
-    
+    setIsSubmitting(true)
+
     try {
-      // Create booking in Firebase
-      const bookingId = await createBooking({
-        service: bookingData.service,
-        date: bookingData.date,
-        time: bookingData.time,
-        clientName: formData.name,
-        clientEmail: formData.email,
-        clientPhone: formData.phone,
-        clientMessage: formData.message,
+      // ✅ Sanitized safe booking data
+      const cleanBooking = {
+        serviceId: bookingData.service.id ?? 'unknown',
+        serviceName: bookingData.service.name ?? 'Unknown Service',
+        date: String(bookingData.date),   // convert to string
+        time: String(bookingData.time),   // convert to string
+        clientName: String(formData.name),
+        clientEmail: String(formData.email),
+        clientPhone: String(formData.phone),
+        clientMessage: String(formData.message ?? ''),
         status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-
-      toast.success('Booking created successfully!');
-      
-      // Pass booking ID to parent
-      onSubmit({ ...formData });
-      
-      // Store booking ID in bookingData for confirmation
-      if (bookingData.service) {
-        bookingData.bookingId = bookingId;
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       }
-    } catch (error) {
-      console.error('Error creating booking:', error);
-      toast.error('Failed to create booking. The slot may have been taken. Please try again.');
-      setSlotStatus('taken');
+
+      const bookingId = await createBooking(cleanBooking)
+
+      toast.success('Booking created successfully!')
+      setSlotStatus('available')
+
+      // Pass details back
+      onSubmit({ ...formData })
+
+      // Save booking ID
+      bookingData.bookingId = bookingId
+
+    } catch (error: any) {
+      console.error('Error creating booking:', error)
+      toast.error('Failed to create booking. Slot may be taken.')
+      setSlotStatus('taken')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   return (
     <div className="afri-glass p-8 md:p-12 rounded-2xl shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+
       <Button
         variant="ghost"
         onClick={onBack}
@@ -103,28 +107,34 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
       {/* Booking Summary */}
       <div className="mb-8 p-6 rounded-xl bg-card/50 border border-primary/20">
         <h3 className="font-semibold mb-4 text-lg">Booking Summary</h3>
+
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Service:</span>
-            <span className="font-medium">{bookingData.service?.name}</span>
+            <span className="font-medium">
+              {bookingData.service?.name || 'N/A'}
+            </span>
           </div>
+
           <div className="flex justify-between">
             <span className="text-muted-foreground">Date:</span>
             <span className="font-medium">{bookingData.date}</span>
           </div>
+
           <div className="flex justify-between">
             <span className="text-muted-foreground">Time:</span>
             <span className="font-medium">{bookingData.time}</span>
           </div>
         </div>
-        
-        {/* Slot Status Indicator */}
+
         {slotStatus && (
-          <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${
-            slotStatus === 'available' 
-              ? 'bg-green-500/10 text-green-600 border border-green-500/20' 
-              : 'bg-red-500/10 text-red-600 border border-red-500/20'
-          }`}>
+          <div
+            className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${
+              slotStatus === 'available'
+                ? 'bg-green-500/10 text-green-600 border border-green-500/20'
+                : 'bg-red-500/10 text-red-600 border border-red-500/20'
+            }`}
+          >
             {slotStatus === 'available' ? (
               <>
                 <CheckCircle2 className="h-5 w-5" />
@@ -133,7 +143,9 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
             ) : (
               <>
                 <AlertCircle className="h-5 w-5" />
-                <span className="text-sm font-medium">Slot was taken. Please select another time.</span>
+                <span className="text-sm font-medium">
+                  Slot was taken. Choose another time.
+                </span>
               </>
             )}
           </div>
@@ -147,7 +159,6 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
           <Input
             id="name"
             name="name"
-            type="text"
             value={formData.name}
             onChange={handleChange}
             required
@@ -175,23 +186,22 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
           <Input
             id="phone"
             name="phone"
-            type="tel"
             value={formData.phone}
             onChange={handleChange}
             required
-            placeholder="+1 (555) 000-0000"
+            placeholder="+250..."
             className="h-12"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="message">Additional Notes (Optional)</Label>
+          <Label htmlFor="message">Additional Notes</Label>
           <Textarea
             id="message"
             name="message"
             value={formData.message}
             onChange={handleChange}
-            placeholder="Any special requests or notes..."
+            placeholder="Any special requests..."
             className="min-h-[120px] resize-none"
           />
         </div>
@@ -200,7 +210,7 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
           type="submit"
           disabled={isSubmitting}
           size="lg"
-          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-6 text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+          className="w-full bg-primary hover:bg-primary/90 py-6 text-lg rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
         >
           {isSubmitting ? (
             <>
@@ -213,7 +223,7 @@ const ClientDetailsCard = ({ bookingData, onSubmit, onBack }: ClientDetailsCardP
         </Button>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default ClientDetailsCard;
+export default ClientDetailsCard

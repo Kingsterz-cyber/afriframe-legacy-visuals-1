@@ -1,6 +1,6 @@
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
-import BookingFlow from '@/components/booking/BookingFlow';
+import BookingFlow from '@/firebase/booking/BookingFlow';
 
 const Booking = () => {
   return (

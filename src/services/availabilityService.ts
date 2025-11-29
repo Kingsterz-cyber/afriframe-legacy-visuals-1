@@ -1,8 +1,9 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
+// src/services/availabilityService.ts
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -13,28 +14,24 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
-export interface AvailabilityDate {
-  date: string; // YYYY-MM-DD format
-  isAvailable: boolean;
-  slots?: TimeSlot[];
-  serviceId?: string;
-}
+// ------------------ TYPES ------------------
 
 export interface TimeSlot {
-  time: string; // HH:mm format
+  time: string; // HH:mm
   isAvailable: boolean;
   bookedBy?: string;
 }
 
+export interface AvailabilityDate {
+  date: string; // YYYY-MM-DD
+  isAvailable: boolean;
+  slots?: TimeSlot[];
+}
+
 export interface Booking {
   id?: string;
-  service: {
-    id: string;
-    name: string;
-    description: string;
-    startingPrice: number;
-    image: string;
-  };
+  serviceId: string;
+  serviceName: string;
   date: string;
   time: string;
   clientName: string;
@@ -42,155 +39,214 @@ export interface Booking {
   clientPhone: string;
   clientMessage?: string;
   status: 'pending' | 'confirmed' | 'cancelled';
-  createdAt: any;
-  updatedAt: any;
 }
 
-// Admin: Set availability for a specific date
+// ------------------ AVAILABILITY ------------------
+
+// Set availability for a single date
 export const setDateAvailability = async (
   date: string,
   isAvailable: boolean,
   slots: TimeSlot[] = []
 ): Promise<void> => {
-  const dateRef = doc(db, 'availability', date);
-  await setDoc(dateRef, {
-    date,
-    isAvailable,
-    slots,
-    updatedAt: Timestamp.now()
-  }, { merge: true });
+  try {
+    const dateRef = doc(db, 'calendar', date);
+    await setDoc(
+      dateRef,
+      {
+        date,
+        isAvailable,
+        slots,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true }
+    );
+    console.log('✅ Date availability set:', date);
+  } catch (error) {
+    console.error('❌ Error setting date availability:', error);
+    throw error;
+  }
 };
 
-// Admin: Batch set availability for multiple dates
+// Batch set availability
 export const setBatchAvailability = async (
   dates: string[],
   isAvailable: boolean
 ): Promise<void> => {
-  const promises = dates.map(date => 
-    setDateAvailability(date, isAvailable, [])
-  );
-  await Promise.all(promises);
+  try {
+    await Promise.all(dates.map((date) => setDateAvailability(date, isAvailable)));
+    console.log('✅ Batch availability set');
+  } catch (error) {
+    console.error('❌ Error setting batch availability:', error);
+    throw error;
+  }
 };
 
 // Get availability for a specific date
 export const getDateAvailability = async (date: string): Promise<AvailabilityDate | null> => {
-  const dateRef = doc(db, 'availability', date);
-  const dateSnap = await getDoc(dateRef);
-  
-  if (dateSnap.exists()) {
-    return dateSnap.data() as AvailabilityDate;
+  try {
+    const dateRef = doc(db, 'calendar', date);
+    const snap = await getDoc(dateRef);
+    return snap.exists() ? (snap.data() as AvailabilityDate) : null;
+  } catch (error) {
+    console.error('❌ Error getting date availability:', error);
+    throw error;
   }
-  return null;
 };
 
-// Get availability for a date range
+// Get availability in a range
 export const getAvailabilityRange = async (
   startDate: string,
   endDate: string
 ): Promise<AvailabilityDate[]> => {
-  const availabilityRef = collection(db, 'availability');
-  const q = query(
-    availabilityRef,
-    where('date', '>=', startDate),
-    where('date', '<=', endDate)
-  );
-  
-  const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => doc.data() as AvailabilityDate);
+  try {
+    const calendarRef = collection(db, 'calendar');
+    const q = query(calendarRef, where('date', '>=', startDate), where('date', '<=', endDate));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) => doc.data() as AvailabilityDate);
+  } catch (error) {
+    console.error('❌ Error getting availability range:', error);
+    throw error;
+  }
 };
 
-// Listen to availability changes in real-time
+// Subscribe to availability changes in real-time
 export const subscribeToAvailability = (
   startDate: string,
   endDate: string,
   callback: (availability: AvailabilityDate[]) => void
 ): (() => void) => {
-  const availabilityRef = collection(db, 'availability');
-  const q = query(
-    availabilityRef,
-    where('date', '>=', startDate),
-    where('date', '<=', endDate)
+  const calendarRef = collection(db, 'calendar');
+  const q = query(calendarRef, where('date', '>=', startDate), where('date', '<=', endDate));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const availability = snapshot.docs.map((doc) => doc.data() as AvailabilityDate);
+      callback(availability);
+      console.log('📅 Calendar updated:', availability.length, 'dates');
+    },
+    (error) => console.error('❌ Calendar subscription error:', error)
   );
-  
-  return onSnapshot(q, (snapshot) => {
-    const availability = snapshot.docs.map(doc => doc.data() as AvailabilityDate);
-    callback(availability);
-  });
 };
 
-// Book a time slot
+// ------------------ TIME SLOT BOOKING ------------------
+
+// Book a single time slot
 export const bookTimeSlot = async (
   date: string,
   time: string,
   clientEmail: string
 ): Promise<void> => {
-  const dateRef = doc(db, 'availability', date);
-  const dateSnap = await getDoc(dateRef);
-  
-  if (dateSnap.exists()) {
-    const data = dateSnap.data() as AvailabilityDate;
-    const slots = data.slots || [];
-    
-    const updatedSlots = slots.map(slot => {
-      if (slot.time === time) {
-        return { ...slot, isAvailable: false, bookedBy: clientEmail };
-      }
-      return slot;
+  const dateRef = doc(db, 'calendar', date);
+  const snap = await getDoc(dateRef);
+
+  if (!snap.exists()) {
+    // Create new date entry if missing
+    await setDoc(dateRef, {
+      date,
+      isAvailable: true,
+      slots: [
+        { time, isAvailable: false, bookedBy: clientEmail }
+      ],
+      updatedAt: Timestamp.now(),
     });
-    
-    await updateDoc(dateRef, { slots: updatedSlots, updatedAt: Timestamp.now() });
+    console.log('✅ New calendar date created with booked slot:', date, time);
+    return;
+  }
+
+  const data = snap.data() as AvailabilityDate;
+  const slots = data.slots || [];
+
+  // Update existing slot or add new slot
+  const updatedSlots: TimeSlot[] = slots.map((s) =>
+    s.time === time ? { ...s, isAvailable: false, bookedBy: clientEmail } : s
+  );
+
+  if (!slots.find((s) => s.time === time)) {
+    updatedSlots.push({ time, isAvailable: false, bookedBy: clientEmail });
+  }
+
+  await updateDoc(dateRef, { slots: updatedSlots, updatedAt: Timestamp.now() });
+  console.log('✅ Time slot booked:', date, time);
+};
+
+// ------------------ BOOKINGS ------------------
+
+// Create a booking
+export const createBooking = async (booking: Booking): Promise<string> => {
+  try {
+    console.log('📝 Creating booking:', booking);
+
+    // Only plain JSON data
+    const cleanBooking = {
+      serviceId: String(booking.serviceId),
+      serviceName: String(booking.serviceName),
+      date: String(booking.date),
+      time: String(booking.time),
+      clientName: String(booking.clientName),
+      clientEmail: String(booking.clientEmail),
+      clientPhone: String(booking.clientPhone),
+      clientMessage: booking.clientMessage || '',
+      status: booking.status,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    };
+
+    const bookingsRef = collection(db, 'bookings');
+    const docRef = await addDoc(bookingsRef, cleanBooking);
+
+    // Update calendar slot
+    await bookTimeSlot(booking.date, booking.time, booking.clientEmail);
+
+    console.log('✅ Booking created with ID:', docRef.id);
+    return docRef.id;
+
+  } catch (error) {
+    console.error('❌ Failed to create booking:', error);
+    throw new Error('Booking failed. Please try again.');
   }
 };
 
-// Create a booking
-export const createBooking = async (booking: Omit<Booking, 'id'>): Promise<string> => {
-  const bookingsRef = collection(db, 'bookings');
-  const docRef = await addDoc(bookingsRef, {
-    ...booking,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now()
-  });
-  
-  // Update availability
-  await bookTimeSlot(booking.date, booking.time, booking.clientEmail);
-  
-  return docRef.id;
-};
-
-// Get all bookings for admin
+// Get all bookings (admin)
 export const getAllBookings = async (): Promise<Booking[]> => {
-  const bookingsRef = collection(db, 'bookings');
-  const querySnapshot = await getDocs(bookingsRef);
-  
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as Booking));
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const snapshot = await getDocs(bookingsRef);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Booking));
+  } catch (error) {
+    console.error('❌ Error getting bookings:', error);
+    throw error;
+  }
 };
 
-// Listen to bookings in real-time
+// Subscribe to bookings in real-time
 export const subscribeToBookings = (
   callback: (bookings: Booking[]) => void
 ): (() => void) => {
   const bookingsRef = collection(db, 'bookings');
-  
-  return onSnapshot(bookingsRef, (snapshot) => {
-    const bookings = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Booking));
-    callback(bookings);
-  });
+  return onSnapshot(
+    bookingsRef,
+    (snapshot) => {
+      const bookings = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Booking));
+      callback(bookings);
+      console.log('📋 Bookings updated:', bookings.length);
+    },
+    (error) => console.error('❌ Bookings subscription error:', error)
+  );
 };
 
-// Update booking status
+// Update booking status (admin)
 export const updateBookingStatus = async (
   bookingId: string,
   status: 'pending' | 'confirmed' | 'cancelled'
 ): Promise<void> => {
-  const bookingRef = doc(db, 'bookings', bookingId);
-  await updateDoc(bookingRef, {
-    status,
-    updatedAt: Timestamp.now()
-  });
+  try {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    await updateDoc(bookingRef, { status, updatedAt: Timestamp.now() });
+    console.log('✅ Booking status updated:', bookingId, status);
+  } catch (error) {
+    console.error('❌ Error updating booking status:', error);
+    throw error;
+  }
 };
