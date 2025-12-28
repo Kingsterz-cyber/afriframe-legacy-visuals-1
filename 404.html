@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      const path = location.pathname.replace(
+        "/afriframe-legacy-visuals-1",
+        ""
+      );
+      location.replace(
+        "/afriframe-legacy-visuals-1/?" + path.slice(1)
+      );
+    </script>
+  </head>
+</html>
