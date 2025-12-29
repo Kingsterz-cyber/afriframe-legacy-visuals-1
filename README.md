@@ -32,3 +32,5 @@ Backend / Database: Firebase Firestore
 Email Service: EmailJS
 
 Notifications: Sonner toast notifications
+
+Developed by IRANEZEZA King Innocent
