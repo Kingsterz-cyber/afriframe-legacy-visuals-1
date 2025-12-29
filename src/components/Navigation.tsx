@@ -1,9 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Camera, Menu, X, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate(); // ✅ INSIDE COMPONENT
 
   const navItems = [
     { label: "Home", href: "#home" },
@@ -14,7 +16,7 @@ const Navigation = () => {
   ];
 
   const scrollToSection = (href: string) => {
-    const id = href.replace('#', '');
+    const id = href.replace("#", "");
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
     setIsOpen(false);
   };
@@ -41,17 +43,19 @@ const Navigation = () => {
                   {item.label}
                 </button>
               ))}
-              <Button 
+
+              <Button
                 size="sm"
                 className="afri-glass border-2 border-primary hover:bg-primary/20"
-                onClick={() => window.location.href = '/booking'}
+                onClick={() => navigate("/booking")}
               >
                 Book Now
               </Button>
-              <Button 
+
+              <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => window.location.href = '/admin-login'}
+                onClick={() => navigate("/admin-login")}
                 className="flex items-center gap-2"
               >
                 <ShieldCheck className="w-4 h-4" />
@@ -81,17 +85,25 @@ const Navigation = () => {
                     {item.label}
                   </button>
                 ))}
-                <Button 
+
+                <Button
                   size="sm"
                   className="w-full afri-glass border-2 border-primary hover:bg-primary/20"
-                  onClick={() => window.location.href = '/booking'}
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate("/booking");
+                  }}
                 >
                   Book Now
                 </Button>
-                <Button 
+
+                <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => window.location.href = '/admin-login'}
+                  onClick={() => {
+                    setIsOpen(false);
+                    navigate("/admin-login");
+                  }}
                   className="w-full flex items-center gap-2 justify-center"
                 >
                   <ShieldCheck className="w-4 h-4" />

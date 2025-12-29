@@ -1,4 +1,5 @@
 import { Camera, Instagram, Facebook, Youtube, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -71,8 +72,8 @@ const Footer = () => {
         <div className="pt-8 border-t border-foreground/10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <p>© {currentYear} Afriframe Pictures. All rights reserved.</p>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms & Conditions</a>
+            <a href="/privacy-policy" className="hover:text-foreground transition-colors">Privacy Policy</a>
+            <a href="/terms-conditions" className="hover:text-foreground transition-colors">Terms & Conditions</a>
           </div>
         </div>
       </div>

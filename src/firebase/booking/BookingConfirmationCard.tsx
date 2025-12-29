@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Calendar as CalendarIcon, Phone, Mail } from 'lucide-react';
 import type { BookingData } from './BookingFlow';
-import { sendBookingNotifications, generateClientConfirmationEmail } from '@/services/emailService';
+
 import { toast } from 'sonner';
 
 interface BookingConfirmationCardProps {

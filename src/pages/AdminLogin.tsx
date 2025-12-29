@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,9 +77,9 @@ const AdminLogin = () => {
         </form>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
-          <a href="/" className="hover:text-accent transition-colors">
+          <Link to="/" className="hover:text-accent transition-colors">
             ← Back to website
-          </a>
+          </Link>
         </p>
       </div>
     </div>
