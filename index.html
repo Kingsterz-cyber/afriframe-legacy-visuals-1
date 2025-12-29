@@ -15,26 +15,23 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@AfriframePics" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-    <script type="module" crossorigin src="/afriframe-legacy-visuals-1/assets/index-TKRvu0_-.js"></script>
-    <link rel="stylesheet" crossorigin href="/afriframe-legacy-visuals-1/assets/index-Cg7qTjF1.css">
-    <script>(() => {
-            try {
-              const logOverlay = () => {
-                const el = document.querySelector('vite-error-overlay');
-                if (!el) return;
-                const root = el.shadowRoot || el;
-                let text = '';
-                try { text = root.textContent || ''; } catch (_) {}
-                if (text && text.trim()) console.error('[Vite Overlay]', text.trim());
-              };
-              const obs = new MutationObserver(logOverlay);
-              obs.observe(document.documentElement, { childList: true, subtree: true });
-              window.addEventListener('DOMContentLoaded', logOverlay);
-              logOverlay();
-            } catch (e) {
-              console.warn('[Vite Overlay logger failed]', e);
-            }
-          })();</script>
+    <script type="module" crossorigin src="/afriframe-legacy-visuals-1/assets/index-CY_QIxWO.js"></script>
+    <link rel="stylesheet" crossorigin href="/afriframe-legacy-visuals-1/assets/index-Dy4TYGiv.css">
+    <script>
+            (() => {
+              try {
+                const obs = new MutationObserver(() => {
+                  const el = document.querySelector('vite-error-overlay');
+                  if (!el) return;
+                  const text = el.shadowRoot?.textContent || el.textContent;
+                  if (text) console.error('[Vite Overlay]', text.trim());
+                });
+                obs.observe(document.documentElement, { childList: true, subtree: true });
+              } catch (e) {
+                console.warn('[Overlay logger failed]', e);
+              }
+            })();
+          </script>
   </head>
 
   <body>
